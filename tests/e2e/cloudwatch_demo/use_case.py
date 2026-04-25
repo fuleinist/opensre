@@ -28,7 +28,7 @@ def extract_and_validate(input_path: str, execution_run_id: str) -> str:
         if not os.path.exists(input_path):
             span.set_attribute("error", True)
             span.set_attribute("error.message", f"empty file not present: {input_path}")
-            raise FileNotFoundError(f"empty file not present: {input_path}")
+            raise FileNotFoundError(f"no such file or directory: {input_path}")
 
         with open(input_path) as f:
             data = f.read()
