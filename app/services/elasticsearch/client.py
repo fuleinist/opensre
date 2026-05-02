@@ -7,6 +7,7 @@ clusters requiring API key authentication.
 
 from __future__ import annotations
 
+import base64
 import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -23,6 +24,8 @@ _DEFAULT_TIMEOUT = 30
 class ElasticsearchConfig:
     url: str
     api_key: str | None = None
+    username: str | None = None
+    password: str | None = None
     index_pattern: str = field(default="*")
 
     @property
@@ -30,10 +33,23 @@ class ElasticsearchConfig:
         return self.url.rstrip("/")
 
     @property
+    def auth_type(self) -> str | None:
+        """Return the authentication type in use."""
+        if self.api_key:
+            return "api_key"
+        if self.username and self.password:
+            return "basic"
+        return None
+
+    @property
     def headers(self) -> dict[str, str]:
         h: dict[str, str] = {"Content-Type": "application/json"}
         if self.api_key:
             h["Authorization"] = f"ApiKey {self.api_key}"
+        elif self.username and self.password:
+            credentials = f"{self.username}:{self.password}"
+            encoded = base64.b64encode(credentials.encode()).decode()
+            h["Authorization"] = f"Basic {encoded}"
         return h
 
 
