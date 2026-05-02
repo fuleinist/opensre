@@ -27,13 +27,33 @@ class TestElasticsearchConfig:
         cfg = ElasticsearchConfig(url="http://localhost:9200")
         assert cfg.base_url == "http://localhost:9200"
 
-    def test_headers_no_api_key(self) -> None:
+    def test_headers_no_credentials(self) -> None:
         cfg = ElasticsearchConfig(url="http://localhost:9200")
         assert cfg.headers == {"Content-Type": "application/json"}
+        assert cfg.auth_type is None
 
     def test_headers_with_api_key(self) -> None:
         cfg = ElasticsearchConfig(url="http://localhost:9200", api_key="my-key")
         assert cfg.headers["Authorization"] == "ApiKey my-key"
+        assert cfg.auth_type == "api_key"
+
+    def test_headers_with_basic_auth(self) -> None:
+        import base64
+
+        cfg = ElasticsearchConfig(url="http://localhost:9200", username="user", password="pass")
+        auth_header = cfg.headers.get("Authorization", "")
+        assert auth_header.startswith("Basic ")
+        encoded = auth_header.split(" ")[1]
+        decoded = base64.b64decode(encoded).decode()
+        assert decoded == "user:pass"
+        assert cfg.auth_type == "basic"
+
+    def test_auth_type_prefers_api_key_when_both_present(self) -> None:
+        cfg = ElasticsearchConfig(
+            url="http://localhost:9200", api_key="key123", username="user", password="pass"
+        )
+        # api_key takes precedence
+        assert cfg.auth_type == "api_key"
 
     def test_default_index_pattern(self) -> None:
         cfg = ElasticsearchConfig(url="http://localhost:9200")
